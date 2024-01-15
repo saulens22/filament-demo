@@ -124,9 +124,12 @@ class OrderResource extends Resource
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
+                            ->native(false)
                             ->placeholder(fn ($state): string => 'Dec 18, ' . now()->subYear()->format('Y')),
                         Forms\Components\DatePicker::make('created_until')
                             ->placeholder(fn ($state): string => now()->format('M d, Y')),
+
+                        Forms\Components\Toggle::make('is_high_price'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -137,6 +140,10 @@ class OrderResource extends Resource
                             ->when(
                                 $data['created_until'] ?? null,
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                )
+                            ->when(
+                                $data['is_high_price'] ?? false,
+                                fn (Builder $query): Builder => $query->where('total_price', '>=', 1000),
                             );
                     })
                     ->indicateUsing(function (array $data): array {
@@ -146,6 +153,9 @@ class OrderResource extends Resource
                         }
                         if ($data['created_until'] ?? null) {
                             $indicators['created_until'] = 'Order until ' . Carbon::parse($data['created_until'])->toFormattedDateString();
+                        }
+                        if($data['is_high_price'] ?? false) {
+                            $indicators['is_high_price'] = 'High price';
                         }
 
                         return $indicators;
